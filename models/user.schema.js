@@ -66,6 +66,24 @@ userSchema.methods = {
       }
     );
   },
+
+  generateForgotPasswordToken: function () {
+    const forgotToken = crypto.randomBytes(20).toString("hex");
+
+    // step 1
+    // save the token to db
+
+    this.forgotPasswordToken = crypto
+      .createHash("sha256")
+      .update(forgotToken)
+      .digest("hex"); //yaha pe possword jo hai wo jaake db me save ho jaa raha hai , yaha pe humne pehle to long string generate kia tha usko aur hash kar dia jisse save rahe
+
+    this.forgotPasswordExpiry = Date.now() + 20 * 60 * 1000; //this. jo hai ye expiry date set kar dega wo bhi db me
+
+    return forgotToken;
+
+    // step2- send the token to user (via. email or jisse bhi bhejna hai)
+  },
 };
 
 export default mongoose.model("User", userSchema);
