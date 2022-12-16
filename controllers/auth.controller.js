@@ -1,6 +1,7 @@
 import User from "../models/user.schema";
 import CustomError from "../utils/customError";
 import { asyncHandler } from "../services/asyncHandler";
+import { text } from "express";
 
 export const cookieOptions = {
   expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
@@ -115,4 +116,52 @@ export const signOut = asyncHandler(async (_req, res) => {
     user,
     token,
   });
+});
+
+/************************************************************
+ *  @ForgotPassword
+ *  @route http://localhost:5000/api/auth/password/forgot
+ *  @description User send email and we send token to reset pwd
+ *  @parameters email
+ *  @returns success message- pwd reset send
+ ***********************************************************/
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new CustomError("User is not registered", 404);
+  }
+
+  const resetToken = user.generatePasswordToken();
+
+  await User.bulkSave({ validateBeforeSave: false });
+
+  //reset url can be wriiten as 'http://localhost:/.../../auth/..
+  const resetUrl = `
+  ${req.protocol}://${req.get("host")}/api/auth/password/reset/${resetToken}`;
+
+  const text = `your password reset url is \n\n ${resetUrl}\n\n`;
+  try {
+    await mailHelper({
+      email: user.email,
+      subject: "Password reset email for website",
+      text: text,
+    });
+    res.status(200).json({
+      success: true,
+      message: `email send to ${user.email}`,
+    });
+  } catch (err) {
+    //roll back- clear fields and save
+
+    user.forgotPasswordToken = undefined;
+    user.forgotPasswordExpiry = undefined;
+
+    await user.save({ validateBeforeSave: false });
+
+    throw new CustomError(err.message || " Email sent failure", 500);
+  }
 });
