@@ -1,7 +1,8 @@
 import User from "../models/user.schema";
 import CustomError from "../utils/customError";
 import { asyncHandler } from "../services/asyncHandler";
-import { text } from "express";
+import crypto from "crypto";
+import mailHelper from "../utils/mailHelper";
 
 export const cookieOptions = {
   expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
@@ -164,4 +165,67 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
     throw new CustomError(err.message || " Email sent failure", 500);
   }
+});
+
+/************************************************************
+ *  @ForgotPassword
+ *  @route http://localhost:5000/api/auth/password/reset/:resetToken
+ *  @description reset the pwd based on reset token
+ *  @parameters token from url , pwd and confirmpwd
+ *  @returns  user Object
+ ***********************************************************/
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  // extract token from params
+
+  const { token: resetToken } = req.params;
+  // get pwd and confirmpwd from req body
+  const { password, confirmPassword } = req.body;
+
+  //create a hash for reset token
+  const resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // find a user based on reset token and should be greater than expiry date
+
+  const user = User.findOne({
+    forgotPasswordToken: resetPasswordToken,
+    forgotPasswordExpiry: { $gt: Date.now() },
+  });
+
+  // if user not present throw error
+
+  if (!user) {
+    throw new CustomError("User not found !", 400);
+  }
+  //  if pwd and confirm pwd does not match throw error
+  if (password !== confirmPassword) {
+    throw new CustomError("password should match", 400);
+  }
+  // store password in user.password
+
+  user.password = password;
+  // make undefined unused fields such as forgot token and expiry
+  user.forgotPasswordToken = undefined;
+  user.forgotPasswordExpiry = undefined;
+
+  //save user
+
+  await user.save();
+  //create a token and send as response
+  const token = user.getJWT();
+
+  // make a cookie and send it
+
+  res.cookie("token", token, cookieOptions);
+  user.password = undefined;
+
+  //send res.json
+  res.status(200).json({
+    success: true,
+    user,
+    token,
+  });
 });
