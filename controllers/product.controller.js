@@ -59,10 +59,8 @@ export const addProduct = asyncHandler(async (req, res) => {
         })
       );
 
-
-
       // This code appears to be performing the following tasks:
-/*
+      /*
 It creates a new Promise called imgArrayResp using the Promise.all() method.
 It uses the Object.keys() method to get an array of keys from the files object.
 It uses the map() method to iterate over the array of keys and perform an async function on each key.
@@ -70,8 +68,6 @@ Inside the async function, it reads the file data from a file located at element
 It then calls the s3FileUpload() function, passing in several arguments including the file data, the bucket name, and the desired file key.
 It returns an object containing the secure URL of the uploaded file.
 This code seems to be uploading multiple files to an Amazon S3 bucket, where each file is associated with a product identified by the productId variable. The Promise.all() method is used to wait for all of the file uploads to complete before returning the array of secure URLs.  */
-
-
 
       const imgArray = await imgArrayResp;
 
@@ -100,7 +96,42 @@ This code seems to be uploading multiple files to an Amazon S3 bucket, where eac
   });
 });
 
+/************************************************************
+ *  @GET_PRODUCTS
+ *  @route http://localhost:5000/api/product
+ *  @description controller used for getting all products details
+ *  @description User and admin can get all the products
+ *  @returns  Produce object
+ ***********************************************************/
 
+export const getAllProducts = asyncHandler(async (req, res) => {
+  const products = await Product.find({});
 
+  if (!products) {
+    throw new CustomError("error in getting all products", 404);
+  }
 
-export const getProduct
+  res.status(201).json({
+    message: "all products accessed",
+    success: true,
+    products,
+  });
+});
+
+/************************************************************
+ *  @GET_PRODUCT
+ *  @route http://localhost:5000/api/product
+ *  @description controller used for getting all products details based on product id
+ *  @description User and admin can get single product
+ *  @returns  Produce object
+ ***********************************************************/
+
+export const getProductById = asyncHandler(async (req, res) => {
+  const { id: productId } = req.params;
+
+  const product = await Product.findById(productId);
+
+  res.status(200).json({
+    message: "single Product acquired",
+  });
+});
