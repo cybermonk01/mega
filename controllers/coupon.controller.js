@@ -1,3 +1,6 @@
+import { asyncHandler } from "../services/asyncHandler";
+import CustomError from "../utils/customError";
+
 /**********************************************************
  * @CREATE_COUPON
  * @route https://localhost:5000/api/coupon
@@ -5,9 +8,6 @@
  * @description Only admin and Moderator can create the coupon
  * @returns Coupon Object with success message "Coupon Created SuccessFully"
  *********************************************************/
-
-import { asyncHandler } from "../services/asyncHandler";
-import CustomError from "../utils/customError";
 
 export const createCoupon = asyncHandler(async (req, res) => {
   const { couponId } = req.body;
